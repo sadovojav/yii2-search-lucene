@@ -1,0 +1,36 @@
+{
+  "name": "sadovojav/yii2-search-lucene",
+  "description": "Yii2 search lucene",
+  "version": "1.0.0.0",
+  "type": "yii2-extension",
+  "keywords": [
+    "yii2",
+    "lucene",
+    "search"
+  ],
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Aleksandr Sadovoj",
+      "email": "sadovojav@gmail.com",
+      "homepage": "https://github.com/sadovojav"
+    }
+  ],
+  "repositories": [
+    {
+      "url": "https://github.com/juffin-halli/yii2-dataProviderIterator",
+      "type": "git"
+    }
+  ],
+  "require": {
+    "php": ">=5.4.0",
+    "yiisoft/yii2": "*",
+    "zf1/zend-search-lucene": "*",
+    "juffin_halli/yii2-data-provider-iterator": "dev-master"
+  },
+  "autoload": {
+    "psr-4": {
+      "sadovojav\\search\\": ""
+    }
+  }
+}
