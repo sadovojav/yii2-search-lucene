@@ -37,7 +37,6 @@ class SearchController extends \yii\console\Controller
 * If need Implemented in the model class interface sadovojav\search\PageLink
 
 ```php
-
     use sadovojav\search\PageLink;
 
     class News extends \yii\db\ActiveRecord implements PageLink {
@@ -50,7 +49,6 @@ class SearchController extends \yii\console\Controller
 * Attach the module in your config file:
 
 ```php
-
     'components' => [
         'search' => [
             'class' => 'sadovojav\search\SearchLucene',
@@ -79,11 +77,11 @@ class SearchController extends \yii\console\Controller
         ]
     ],
 ```
+> pk and type are not required
 
 * Search controller
 
 ```php
-
     use Yii;
     use yii\data\ArrayDataProvider;
 
@@ -112,7 +110,3 @@ class SearchController extends \yii\console\Controller
         }
     }
 ```
-
-## Author
-
-[Aleksandr Sadovoj](https://github.com/sadovojav/), e-mail: [sadovojav@gmail.com](mailto:sadovojav@gmail.com)
