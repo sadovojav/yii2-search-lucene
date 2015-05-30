@@ -119,7 +119,7 @@ class SearchLucene extends \yii\base\Component
         Zend_Search_Lucene_Analysis_Analyzer::setDefault(new Zend_Search_Lucene_Analysis_Analyzer_Common_Utf8_CaseInsensitive());
 
         if (($term = $q) !== null) {
-            $index = new Zend_Search_Lucene(Yii::getAlias($this->_indexFiles));
+            $index = new Zend_Search_Lucene(Yii::getAlias($this->indexFiles));
             $results = $index->find($term);
             $query = Zend_Search_Lucene_Search_QueryParser::parse($term);
 
