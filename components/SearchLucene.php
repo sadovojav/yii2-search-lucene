@@ -1,6 +1,6 @@
 <?php
 
-namespace sadovojav\search;
+namespace sadovojav\search\components;
 
 use Yii;
 use yii\data\ActiveDataProvider;
@@ -15,7 +15,7 @@ use Zend_Search_Lucene_Search_QueryParser;
 
 /**
  * Class SearchLucene
- * @package sadovoy\search
+ * @package sadovojav\search\components
  */
 class SearchLucene extends \yii\base\Component
 {

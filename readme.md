@@ -18,22 +18,6 @@ or add ```"sadovojav/yii2-search-lucene": ""dev-master"``` to the require sectio
 
 ### Using
 
-* Create console controller
-
-```php
-namespace console\controllers;
-
-use Yii;
-
-class SearchController extends \yii\console\Controller
-{
-    public function actionIndex() {
-        $search = Yii::$app->search;
-        $search->createIndex();
-    }
-}
-```
-
 * If need Implemented in the model class interface sadovojav\search\PageLink
 
 ```php
@@ -46,12 +30,12 @@ class SearchController extends \yii\console\Controller
     }
 ```
 
-* Attach the module in your config file:
+* Attach component in your frontend config file:
 
 ```php
     'components' => [
         'search' => [
-            'class' => 'sadovojav\search\SearchLucene',
+            'class' => 'sadovojav\search\components\SearchLucene',
             'config' => [
                 [
                     'dataProviderOptions' => [
@@ -78,6 +62,14 @@ class SearchController extends \yii\console\Controller
     ],
 ```
 > pk and type are not required
+
+* Attach the module in your console config file:
+* 
+```php
+    'modules' => [
+        'search' => 'sadovojav\search\Module',
+    ],
+```
 
 * Search controller
 
@@ -110,3 +102,8 @@ class SearchController extends \yii\console\Controller
         }
     }
 ```
+* Create search index
+
+In console:
+
+```php yii search/search/index```
