@@ -10,9 +10,6 @@ use Yii;
  */
 class Module extends \yii\base\Module
 {
-    /**
-     * @var string
-     */
     public $controllerNamespace = 'sadovojav\search\controllers';
 
     public function init()

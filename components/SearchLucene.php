@@ -116,6 +116,7 @@ class SearchLucene extends \yii\base\Component
     {
         setlocale(LC_CTYPE, 'ru_RU.UTF-8');
         Zend_Search_Lucene_Search_Query_Wildcard::setMinPrefixLength(0);
+        Zend_Search_Lucene_Search_QueryParser::setDefaultEncoding('utf-8');
         Zend_Search_Lucene_Analysis_Analyzer::setDefault(new Zend_Search_Lucene_Analysis_Analyzer_Common_Utf8_CaseInsensitive());
 
         if (($term = $q) !== null) {
@@ -179,13 +180,19 @@ class SearchLucene extends \yii\base\Component
         $fileExt = strrchr($value, '.');
 
         if (!in_array($fileExt, self::$documents)) {
-           return $value;
+            return $value;
         }
 
         switch ($fileExt) {
-            case self::DOCUMENT_DOCX : $result = $this->readDocx($attributeValue, $value); break;
-            case self::DOCUMENT_XLSX : $result = $this->readXlsx($attributeValue, $value); break;
-            case self::DOCUMENT_PPTX : $result = $this->readPptx($attributeValue, $value); break;
+            case self::DOCUMENT_DOCX :
+                $result = $this->readDocx($attributeValue, $value);
+                break;
+            case self::DOCUMENT_XLSX :
+                $result = $this->readXlsx($attributeValue, $value);
+                break;
+            case self::DOCUMENT_PPTX :
+                $result = $this->readPptx($attributeValue, $value);
+                break;
         }
 
         return $result;
@@ -197,7 +204,8 @@ class SearchLucene extends \yii\base\Component
      * @param $value
      * @return bool|string
      */
-    private function getFilePath($basePath, $value) {
+    private function getFilePath($basePath, $value)
+    {
         return Yii::getAlias($basePath . $value);
     }
 
@@ -208,7 +216,8 @@ class SearchLucene extends \yii\base\Component
      * @return null|string
      * @throws \Zend_Search_Lucene_Document_Exception
      */
-    private function readDocx($attributeValue, $value) {
+    private function readDocx($attributeValue, $value)
+    {
         $filePath = $this->getFilePath($attributeValue['basePath'], $value);
 
         if (!file_exists($filePath)) {
@@ -224,7 +233,8 @@ class SearchLucene extends \yii\base\Component
      * @param $value
      * @return null|string
      */
-    private function readXlsx($attributeValue, $value) {
+    private function readXlsx($attributeValue, $value)
+    {
         $filePath = $this->getFilePath($attributeValue['basePath'], $value);
 
         if (!file_exists($filePath)) {
@@ -240,7 +250,8 @@ class SearchLucene extends \yii\base\Component
      * @param $value
      * @return null|string
      */
-    private function readPptx($attributeValue, $value) {
+    private function readPptx($attributeValue, $value)
+    {
         $filePath = $this->getFilePath($attributeValue['basePath'], $value);
 
         if (!file_exists($filePath)) {
