@@ -12,9 +12,9 @@ This is a fork [SergeiGulin/yii2-search-lucene](https://github.com/SergeiGulin/y
 
 The preferred way to install this extension is through [Composer](http://getcomposer.org/).
 
-Either run ```php composer.phar require sadovojav/yii2-search-lucene ""dev-master"```
+Either run ```php composer.phar require sadovojav/yii2-search-lucene "dev-master"```
 
-or add ```"sadovojav/yii2-search-lucene": ""dev-master"``` to the require section of your ```composer.json```
+or add ```"sadovojav/yii2-search-lucene": "dev-master"``` to the require section of your ```composer.json```
 
 ### Using
 
