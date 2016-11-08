@@ -5,6 +5,8 @@ This is a fork [SergeiGulin/yii2-search-lucene](https://github.com/SergeiGulin/y
 #### Features:
 - Easy to use
 - Search in models
+- MutliTerm
+- Search by numbers
 - Search in documents (xlsx, docx, pptx)
 - Relation value
 
@@ -36,29 +38,36 @@ or add ```"sadovojav/yii2-search-lucene": "dev-master"``` to the require section
     'components' => [
         'search' => [
             'class' => 'sadovojav\search\components\SearchLucene',
-            'config' => [
+            'caseSensitivity' => true,
+            'indexDirectory' => '@console/runtime/search',
+            'models' => [
                 [
                     'dataProviderOptions' => [
-                        'query' => sadovojav\content\models\Entry::find()
+                        'query' => common\modules\catalog\models\Product::find()
+                            ->localized('en')
                             ->active()
                     ],
-                    'pk' => 'id',
-                    'type' => 'content-entry',
-                    'attributesSearch' => [
-                        'name' => 'name',
-                        'description' => 'textIntro',
-                        'category' => [
-                            'attribute' => 'category.name',
-                            'fieldType' => 'UnIndex'
+                    'attributes' => [
+                        'lang' => 'en',
+                        'name' => [
+                            'name' => SearchLucene::FIELD_TEXT
                         ],
-                        'textFull' => [
-                            'attribute' => 'textFull',
-                            'fieldType' => 'UnStored'
+                        'image' => [
+                            'image' => SearchLucene::FIELD_UN_INDEXED,
+                        ],
+                        'type_id' => [
+                            'type_id' => SearchLucene::FIELD_UN_INDEXED,
+                        ],
+                        'vendor_code' => [
+                            'vendor_code' => SearchLucene::FIELD_UN_STORED,
+                        ],
+                        'description' => [
+                            'description' => SearchLucene::FIELD_UN_STORED,
                         ],
                     ],
-                ]
-            ]
-        ]
+                ],
+            ],
+        ],
     ],
 ```
 > pk and type are not required
@@ -77,30 +86,37 @@ or add ```"sadovojav/yii2-search-lucene": "dev-master"``` to the require section
     use Yii;
     use yii\data\ArrayDataProvider;
 
-    class SearchController extends \yii\web\Controller
+class SearchController extends \yii\web\Controller
+{
+    const ITEMS_PER_PAGE = 24;
+
+    public function actionIndex($q)
     {
-        const ITEMS_PER_PAGE = 30;
+        $query = html_entity_decode(trim($q));
 
-        public function actionIndex($q)
-        {
-            $q = html_entity_decode(trim($q));
+        $results = Yii::$app->search->search($query);
 
-            list($index, $results, $query) = Yii::$app->search->search($q);
+        $dataProvider = new ArrayDataProvider([
+            'allModels' => $results,
+            'pagination' => [
+                'defaultPageSize' => self::ITEMS_PER_PAGE,
+                'forcePageParam' => false
+            ],
+        ]);
 
-            $dataProvider = new ArrayDataProvider([
-                'allModels' => $results,
-                'pagination' => [
-                    'defaultPageSize' => self::ITEMS_PER_PAGE,
-                    'forcePageParam' => false
-                ],
-            ]);
-
-            return $this->render('index', array(
-                'query' => $q,
-                'dataProvider' => $dataProvider,
-            ));
-        }
+        return $this->render('index', [
+            'query' => $query,
+            'dataProvider' => $dataProvider->models,
+        ]);
     }
+
+    public function actionCreateIndex()
+    {
+        $search = Yii::$app->search;
+
+        $search->index();
+    }
+}
 ```
 * Create search index
 

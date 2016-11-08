@@ -3,15 +3,22 @@
 namespace sadovojav\search\components;
 
 use Yii;
+use yii\helpers\FileHelper;
+use ZendSearch\Lucene\Lucene;
+use ZendSearch\Lucene\Document;
 use yii\data\ActiveDataProvider;
+use ZendSearch\Lucene\Index\Term as IndexTerm;
+use ZendSearch\Lucene\Document\Docx;
+use ZendSearch\Lucene\Document\Pptx;
+use ZendSearch\Lucene\Document\Xlsx;
+use ZendSearch\Lucene\Document\Field;
+use ZendSearch\Lucene\Search\QueryParser;
+use ZendSearch\Lucene\Search\Query\Wildcard;
+use ZendSearch\Lucene\Search\Query\MultiTerm;
+use ZendSearch\Lucene\Analysis\Analyzer\Analyzer;
+use ZendSearch\Lucene\Analysis\Analyzer\Common\Utf8Num;
 use juffin_halli\dataProviderIterator\DataProviderIterator;
-use Zend_Search_Lucene;
-use Zend_Search_Lucene_Analysis_Analyzer;
-use Zend_Search_Lucene_Analysis_Analyzer_Common_Utf8_CaseInsensitive;
-use Zend_Search_Lucene_Document;
-use Zend_Search_Lucene_Field;
-use Zend_Search_Lucene_Search_Query_Wildcard;
-use Zend_Search_Lucene_Search_QueryParser;
+use ZendSearch\Lucene\Analysis\Analyzer\Common\Utf8Num\CaseInsensitive;
 
 /**
  * Class SearchLucene
@@ -19,8 +26,35 @@ use Zend_Search_Lucene_Search_QueryParser;
  */
 class SearchLucene extends \yii\base\Component
 {
-    public $config;
-    public $indexFiles = '@console/runtime/search';
+    /**
+     * @var
+     */
+    public $models;
+
+    /**
+     * @var string alias or directory path
+     */
+    public $indexDirectory = '@app/runtime/search';
+
+    /**
+     * @var bool
+     */
+    public $caseSensitivity = false;
+
+    /**
+     * @var int Minimum term prefix length (number of minimum non-wildcard characters)
+     */
+    public $minPrefixLength = 3;
+
+    /**
+     * @var int 0 means no limit
+     */
+    public $resultsLimit = 0;
+
+    /**
+     * @var \ZendSearch\Lucene\Index
+     */
+    private $luceneIndex;
 
     const FIELD_KEYWORD = 'Keyword';
     const FIELD_UN_INDEXED = 'UnIndexed';
@@ -32,132 +66,144 @@ class SearchLucene extends \yii\base\Component
     const DOCUMENT_XLSX = '.xlsx';
     const DOCUMENT_PPTX = '.pptx';
 
-    private static $fieldTypes = [
-        self::FIELD_KEYWORD,
-        self::FIELD_UN_INDEXED,
-        self::FIELD_BINARY,
-        self::FIELD_TEXT,
-        self::FIELD_UN_STORED,
-    ];
-
     private static $documents = [
         self::DOCUMENT_DOCX,
         self::DOCUMENT_XLSX,
     ];
 
+    public function init()
+    {
+        QueryParser::setDefaultEncoding('UTF-8');
+
+        if ($this->caseSensitivity) {
+            Analyzer::setDefault(new Utf8Num());
+        } else {
+            Analyzer::setDefault(new CaseInsensitive());
+        }
+
+        $this->indexDirectory = FileHelper::normalizePath(Yii::getAlias($this->indexDirectory));
+        $this->luceneIndex = $this->getLuceneIndex($this->indexDirectory);
+    }
+
+    /**
+     * @param string $directory
+     * @return \ZendSearch\Lucene\SearchIndexInterface
+     */
+    protected function getLuceneIndex($directory)
+    {
+        if (file_exists($directory . DIRECTORY_SEPARATOR . 'segments.gen')) {
+            return Lucene::open($directory);
+        } else {
+            return Lucene::create($directory);
+        }
+    }
+
     /**
      * Create Zend Lucene index
      */
-    public function createIndex()
+    public function index()
     {
-        setlocale(LC_CTYPE, 'ru_RU.UTF-8');
-        Zend_Search_Lucene_Analysis_Analyzer::setDefault(
-            new Zend_Search_Lucene_Analysis_Analyzer_Common_Utf8_CaseInsensitive());
-
-        $index = new Zend_Search_Lucene(Yii::getAlias($this->indexFiles), true);
-
-        $config = $this->config;
-
-        foreach ($config as $key => $value) {
-            $doc = new Zend_Search_Lucene_Document();
-
+        foreach ($this->models as $key => $value) {
             $dataProvider = new ActiveDataProvider($value['dataProviderOptions']);
             $iterator = new DataProviderIterator($dataProvider);
 
+            if (isset($value['attributes']['lang'])) {
+                $hits = $this->luceneIndex->find('lang:' . $value['attributes']['lang']);
+
+                foreach ($hits as $hit) {
+                    $this->luceneIndex->delete($hit->id);
+                }
+            }
+
             foreach ($iterator as $model) {
-                if (isset($value['pk']) && isset($model->$value['pk'])) {
-                    $this->indexField($doc, 'pk', $model->$value['pk'], self::FIELD_UN_INDEXED);
-                }
+                $document = $this->createDocument($model, $value['attributes']);
 
-                if (isset($value['type'])) {
-                    $this->indexField($doc, 'type', $value['type'], self::FIELD_UN_INDEXED);
-                }
-
-                foreach ($value['attributesSearch'] as $name => $val) {
-                    if (is_array($val)) {
-
-                        if (isset($val['fieldType'])) {
-                            $fieldType = in_array($val['fieldType'], self::$fieldTypes) ? $val['fieldType'] : self::FIELD_TEXT;
-                        } else {
-                            $fieldType = self::FIELD_TEXT;
-                        }
-
-                        $attributeValue = $this->getAttributeValue($model, $val);
-
-                        $this->indexField($doc, $name, $attributeValue, $fieldType);
-                    } else {
-                        $attributeValue = $this->getAttributeValue($model, $val);
-
-                        $this->indexField($doc, $name, $attributeValue);
-                    }
-                }
-
-                if (!method_exists($model, 'getUrl')) {
-                    throw new \yii\base\InvalidValueException('The identity object must implement PageLink.');
-                }
-
-                $link = $model->getUrl();
-                $this->indexField($doc, 'url', $link);
-                $index->addDocument($doc);
+                $this->luceneIndex->addDocument($document);
             }
         }
 
-        $index->optimize();
-        $index->commit();
+        $this->luceneIndex->optimize();
+        $this->luceneIndex->commit();
+
+        return true;
+    }
+
+    public function optimize()
+    {
+        $this->luceneIndex->optimize();
     }
 
     /**
-     * Search
-     * @param $q
-     * @return array
-     * @throws \Zend_Search_Lucene_Exception
+     * Create document
+     *
+     * @param $model
+     * @param $attributes
+     * @return Document
      */
-    public function search($q)
+    private function createDocument($model, $attributes)
     {
-        setlocale(LC_CTYPE, 'ru_RU.UTF-8');
-        Zend_Search_Lucene_Search_Query_Wildcard::setMinPrefixLength(0);
-        Zend_Search_Lucene_Search_QueryParser::setDefaultEncoding('utf-8');
-        Zend_Search_Lucene_Analysis_Analyzer::setDefault(new Zend_Search_Lucene_Analysis_Analyzer_Common_Utf8_CaseInsensitive());
+        $document = new Document();
 
-        if (($term = $q) !== null) {
-            $index = new Zend_Search_Lucene(Yii::getAlias($this->indexFiles));
-            $results = $index->find($term);
-            $query = Zend_Search_Lucene_Search_QueryParser::parse($term);
+        foreach ($attributes as $name => $value) {
+            if (is_array($value)) {
+                list($attribute, $fieldType) = [key($value), current($value)];
 
-            return [$index, $results, $query];
-        } else {
-            return null;
+                $value = $this->getAttributeValue($model, $attribute);
+            } else {
+                $fieldType = self::FIELD_TEXT;
+            }
+
+            $document->addField(Field::$fieldType($name, strip_tags($value)));
         }
-    }
 
-    /**
-     * Make index field
-     * @param $document
-     * @param $field
-     * @param $data
-     * @param string $fieldType
-     * @param string $encoding
-     * @return mixed
-     */
-    protected function indexField($document, $field, $data, $fieldType = self::FIELD_TEXT, $encoding = 'UTF-8')
-    {
-        $strip_tags_data = strip_tags($data);
-        $document->addField(Zend_Search_Lucene_Field::$fieldType($field, $strip_tags_data, $encoding));
+        if (!method_exists($model, 'getUrl')) {
+            throw new \yii\base\InvalidValueException('The identity object must implement PageLink.');
+        }
+
+        $document->addField(Field::Text('url', $model->getUrl()));
 
         return $document;
     }
 
     /**
+     * Search page for the term in the index.
+     *
+     * @param $term
+     * @param array $fields
+     * @return array|\ZendSearch\Lucene\Search\QueryHit
+     */
+    public function search($term, $fields = [])
+    {
+        Wildcard::setMinPrefixLength($this->minPrefixLength);
+        Lucene::setResultSetLimit($this->resultsLimit);
+
+        $query = new MultiTerm();
+
+        if (count($fields)) {
+            foreach ($fields as $field => $value) {
+                $query->addTerm(new IndexTerm($value, $field), true);
+            }
+        }
+
+        $subTerm = explode(' ', $term);
+
+        foreach ($subTerm as $value) {
+            $query->addTerm(new IndexTerm($value), true);
+        }
+
+        return $this->luceneIndex->find($query);
+    }
+
+    /**
      * Get attribute value
+     *
      * @param $model
      * @param $attributeValue
      * @return null|string
      */
-    private function getAttributeValue($model, $attributeValue)
+    private function getAttributeValue($model, $attribute)
     {
         $result = $value = null;
-
-        $attribute = isset($attributeValue['attribute']) ? $attributeValue['attribute'] : $attributeValue;
 
         if (strpos($attribute, '.')) {
             $arr = explode('.', $attribute);
@@ -185,13 +231,13 @@ class SearchLucene extends \yii\base\Component
 
         switch ($fileExt) {
             case self::DOCUMENT_DOCX :
-                $result = $this->readDocx($attributeValue, $value);
+                $result = $this->readDocx($attribute, $value);
                 break;
             case self::DOCUMENT_XLSX :
-                $result = $this->readXlsx($attributeValue, $value);
+                $result = $this->readXlsx($attribute, $value);
                 break;
             case self::DOCUMENT_PPTX :
-                $result = $this->readPptx($attributeValue, $value);
+                $result = $this->readPptx($attribute, $value);
                 break;
         }
 
@@ -200,6 +246,7 @@ class SearchLucene extends \yii\base\Component
 
     /**
      * Get File path
+     *
      * @param $basePath
      * @param $value
      * @return bool|string
@@ -211,6 +258,7 @@ class SearchLucene extends \yii\base\Component
 
     /**
      * Read .docx
+     *
      * @param $attributeValue
      * @param $value
      * @return null|string
@@ -224,11 +272,12 @@ class SearchLucene extends \yii\base\Component
             return null;
         }
 
-        return \Zend_Search_Lucene_Document_Docx::loadDocxFile($filePath)->body;
+        return Docx::loadDocxFile($filePath)->body;
     }
 
     /**
      * Read .xlsx files
+     *
      * @param $attributeValue
      * @param $value
      * @return null|string
@@ -241,11 +290,12 @@ class SearchLucene extends \yii\base\Component
             return null;
         }
 
-        return \Zend_Search_Lucene_Document_Xlsx::loadXlsxFile($filePath)->body;
+        return Xlsx::loadXlsxFile($filePath)->body;
     }
 
     /**
      * Read Pptx files
+     *
      * @param $attributeValue
      * @param $value
      * @return null|string
@@ -258,6 +308,6 @@ class SearchLucene extends \yii\base\Component
             return null;
         }
 
-        return \Zend_Search_Lucene_Document_Pptx::loadPptxFile($filePath)->body;
+        return Pptx::loadPptxFile($filePath)->body;
     }
 }

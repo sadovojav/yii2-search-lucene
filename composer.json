@@ -1,7 +1,7 @@
 {
   "name": "sadovojav/yii2-search-lucene",
   "description": "Yii2 search lucene",
-  "version": "1.0.0.0",
+  "version": "2.0.0",
   "type": "yii2-extension",
   "keywords": [
     "yii2",
@@ -24,7 +24,7 @@
   "require": {
     "php": ">=5.4.0",
     "yiisoft/yii2": "*",
-    "zf1/zend-search-lucene": "*",
+    "zendframework/zendsearch": "*@RC",
     "juffin_halli/yii2-data-provider-iterator": "dev-master"
   },
   "autoload": {

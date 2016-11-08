@@ -12,9 +12,11 @@ class SearchController extends \yii\console\Controller
 {
     public function actionIndex()
     {
-        /* @var $search \sadovojav\search\components\SearchLucene */
-        $search = Yii::$app->search;
+        Yii::$app->search->index();
+    }
 
-        $search->createIndex();
+    public function actionOptimize()
+    {
+        Yii::$app->search->optimyze();
     }
 }
