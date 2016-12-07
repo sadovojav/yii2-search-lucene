@@ -73,7 +73,7 @@ class News extends \yii\db\ActiveRecord implements PageLink {
 > pk and type are not required
 
 * Attach the module in your console config file:
-* 
+
 ```php
 'modules' => [
     'search' => 'sadovojav\search\Module',
@@ -106,7 +106,7 @@ class SearchController extends \yii\web\Controller
 
         return $this->render('index', [
             'query' => $query,
-            'dataProvider' => $dataProvider->models,
+            'dataProvider' => $dataProvider
         ]);
     }
 
