@@ -1,7 +1,5 @@
 # Yii2 Zend Lucene Search
 
-This is a fork [SergeiGulin/yii2-search-lucene](https://github.com/SergeiGulin/yii2-search-lucene)
-
 #### Features:
 - Easy to use
 - Search in models
@@ -9,6 +7,7 @@ This is a fork [SergeiGulin/yii2-search-lucene](https://github.com/SergeiGulin/y
 - Search by numbers
 - Search in documents (xlsx, docx, pptx)
 - Relation value
+- Interactive add/update/delete index
 
 ### Composer
 
@@ -18,73 +17,146 @@ Either run ```php composer.phar require sadovojav/yii2-search-lucene "dev-master
 
 or add ```"sadovojav/yii2-search-lucene": "dev-master"``` to the require section of your ```composer.json```
 
-### Using
+### Config
 
-* If need Implemented in the model class interface sadovojav\search\PageLink
+* If need implemented in the model class interface sadovojav\search\PageLink
 
 ```php
-    use sadovojav\search\PageLink;
+use yii\helpers\Url;
+use sadovojav\search\PageLink;
 
-    class News extends \yii\db\ActiveRecord implements PageLink {
-        public function getUrl() {
-            return ['news/view', 'id' => $this->id];
-        }
+class News extends \yii\db\ActiveRecord implements PageLink {
+    public function getUrl()
+    {
+        return Url::to(['/news/news/view', 'id' => $this->id]);
     }
+}
 ```
 
-* Attach component in your frontend config file:
+#### If you want use interactive add/update/delete index
+
+* Attach component in your config file:
 
 ```php
-    'components' => [
-        'search' => [
-            'class' => 'sadovojav\search\components\SearchLucene',
-            'caseSensitivity' => true,
-            'indexDirectory' => '@console/runtime/search',
-            'models' => [
-                [
-                    'dataProviderOptions' => [
-                        'query' => common\modules\catalog\models\Product::find()
-                            ->localized('en')
-                            ->active()
+'components' => [
+    'search' => [
+        'class' => 'sadovojav\search\components\SearchLucene',
+        'indexDirectory' => '@console/runtime/search'
+    ]
+]
+```
+
+* Attach behavior to your model
+
+```php
+use sadovojav\search\behaviors\SearchBehavior;
+
+class News extends \yii\db\ActiveRecord
+{
+    public function behaviors()
+    {
+        return [
+        	'search' => [
+                'class' => SearchBehavior::className(),
+                'attributes' => [
+                    'name' => [
+                        'name' => SearchLucene::FIELD_TEXT
                     ],
-                    'attributes' => [
-                        'lang' => 'en',
-                        'name' => [
-                            'name' => SearchLucene::FIELD_TEXT
-                        ],
-                        'image' => [
-                            'image' => SearchLucene::FIELD_UN_INDEXED,
-                        ],
-                        'type_id' => [
-                            'type_id' => SearchLucene::FIELD_UN_INDEXED,
-                        ],
-                        'vendor_code' => [
-                            'vendor_code' => SearchLucene::FIELD_UN_STORED,
-                        ],
-                        'description' => [
-                            'description' => SearchLucene::FIELD_UN_STORED,
-                        ],
+                    'text_intro' => [
+                        'text_intro' => SearchLucene::FIELD_UN_STORED
+                    ],
+                    'text_full' => [
+                        'text_full' => SearchLucene::FIELD_UN_STORED
                     ],
                 ],
-            ],
-        ],
-    ],
+                'conditions' => [
+                    'status_id' => self::STATUS_ACTIVE
+                ],
+                'urlManagerRule' => [
+                    'news/<id:\d+>' => '/news/news/view'
+                ]
+            ]
+        ];
+    }
+}
 ```
-> pk and type are not required
+
+#### Parameters
+
+- array `attributes` required - attributes to index
+- array `conditions` - Conditions for creating search index
+- string `baseUrl` = `''` - Base url
+- array `urlManagerRule` -  Pretty url rules
+
+#### Attention
+
+```
+SearchBehavior can work correctly only with one language website. Otherwise, it will be indexed only one language.
+```
+
+#### If you want use console indexing
+
+* Attach component in your config file:
+
+```php
+'components' => [
+    'search' => [
+        'class' => 'sadovojav\search\components\SearchLucene',
+        'indexDirectory' => '@console/runtime/search',
+        'models' => [
+            [
+                'dataProviderOptions' => [
+                    'query' => common\modules\news\models\News::find()
+                        ->localized('en')
+                        ->active()
+                ],
+                'attributes' => [
+                    'lang' => 'en', // Custom fild to search
+                    'name' => [
+                        'name' => SearchLucene::FIELD_TEXT
+                    ],
+                    'text_intro' => [
+                        'text_intro' => SearchLucene::FIELD_UN_STORED
+                    ],
+                    'text_full' => [
+                        'text_full' => SearchLucene::FIELD_UN_STORED
+                    ],
+                ],
+            ]
+        ]
+    ]
+]
+```
 
 * Attach the module in your console config file:
-* 
+
 ```php
     'modules' => [
-        'search' => 'sadovojav\search\Module',
-    ],
+        'search' => 'sadovojav\search\Module'
+    ]
 ```
 
-* Search controller
+* Add rules for your urlManager if you need
+
+* Create search index
+
+In console:
+
+```php yii search/search/index```
+
+* Optimize search index
+
+In console:
+
+```php yii search/search/optimyze```
+
+
+### Use
+#### Search controller
 
 ```php
-    use Yii;
-    use yii\data\ArrayDataProvider;
+use Yii;
+use yii\data\ArrayDataProvider;
 
 class SearchController extends \yii\web\Controller
 {
@@ -94,32 +166,37 @@ class SearchController extends \yii\web\Controller
     {
         $query = html_entity_decode(trim($q));
 
-        $results = Yii::$app->search->search($query);
+        // Search documents without custom conditions
+        // $results = Yii::$app->search->search($query);
+        
+        // Search documents with custom conditions (lang)
+        $results = Yii::$app->search->search($query, [
+            'lang' => Yii::$app->language
+        ]);
 
         $dataProvider = new ArrayDataProvider([
             'allModels' => $results,
             'pagination' => [
                 'defaultPageSize' => self::ITEMS_PER_PAGE,
                 'forcePageParam' => false
-            ],
+            ]
         ]);
 
         return $this->render('index', [
             'query' => $query,
-            'dataProvider' => $dataProvider->models,
+            'dataProvider' => $dataProvider
         ]);
-    }
-
-    public function actionCreateIndex()
-    {
-        $search = Yii::$app->search;
-
-        $search->index();
     }
 }
 ```
-* Create search index
 
-In console:
+#### Attention
 
-```php yii search/search/index```
+Search component now use default fields
+* ```class``` - model class name with namespase
+* ```pk``` - model primary key
+
+
+### TODO
+
+* Create multilanguage behavior for this https://github.com/OmgDef/yii2-multilingual-behavior

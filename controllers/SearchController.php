@@ -17,6 +17,6 @@ class SearchController extends \yii\console\Controller
 
     public function actionOptimize()
     {
-        Yii::$app->search->optimyze();
+        Yii::$app->search->optimize();
     }
 }
