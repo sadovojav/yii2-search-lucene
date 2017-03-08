@@ -140,14 +140,22 @@ class SearchLucene extends \yii\base\Component
 
         if (count($fields)) {
             foreach ($fields as $field => $value) {
-                $query->addTerm(new IndexTerm(mb_strtolower($value, 'UTF-8'), $field), true);
+                if (is_array($value)) {
+                    foreach ($value as $val) {
+                        $query->addTerm(new IndexTerm(mb_strtolower($val, 'UTF-8'), $field), true);
+                    }
+                } else {
+                    $query->addTerm(new IndexTerm(mb_strtolower($value, 'UTF-8'), $field), true);
+                }
             }
         }
 
-        $subTerm = explode(' ', $term);
+        if (!empty($term)) {
+            $subTerm = explode(' ', $term);
 
-        foreach ($subTerm as $value) {
-            $query->addTerm(new IndexTerm(mb_strtolower($value, 'UTF-8')), true);
+            foreach ($subTerm as $value) {
+                $query->addTerm(new IndexTerm(mb_strtolower($value, 'UTF-8')), true);
+            }
         }
 
         return $this->_luceneIndex->find($query);
