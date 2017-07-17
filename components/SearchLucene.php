@@ -195,7 +195,9 @@ class SearchLucene extends \yii\base\Component
         $docs = $this->_luceneIndex->find($query);
 
         if (count($docs)) {
-            $this->_luceneIndex->delete($docs[0]->id);
+            foreach ($docs as $doc) {
+                $this->_luceneIndex->delete($doc->id);
+            }
 
             $this->_luceneIndex->commit();
         }

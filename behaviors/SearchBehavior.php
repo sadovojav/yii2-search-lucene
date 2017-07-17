@@ -2,8 +2,6 @@
 
 namespace sadovojav\search\behaviors;
 
-use Yii;
-use yii\helpers\Url;
 use yii\db\ActiveRecord;
 
 /**
@@ -33,9 +31,13 @@ class SearchBehavior extends \yii\behaviors\AttributeBehavior
      */
     public $urlManagerRule = [];
 
+    public $languages = [];
+
     private $_search;
 
     private $_baseUrl;
+
+    private $_language;
 
     public function events()
     {
@@ -50,27 +52,42 @@ class SearchBehavior extends \yii\behaviors\AttributeBehavior
     {
         parent::init();
 
-        $this->_baseUrl = Yii::$app->urlManager->getBaseUrl();
+        $this->_baseUrl = \Yii::$app->urlManager->getBaseUrl();
+        $this->_language = \Yii::$app->language;
+        $this->_search = \Yii::$app->search;
 
         if (count($this->urlManagerRule)) {
-            Yii::$app->urlManager->addRules($this->urlManagerRule);
+            \Yii::$app->urlManager->addRules($this->urlManagerRule);
         }
-
-        $this->_search = Yii::$app->search;
     }
 
-    public function insert()
+    private function insert()
     {
         if ($this->meetConditions()) {
-            Yii::$app->urlManager->setBaseUrl($this->baseUrl);
+            \Yii::$app->urlManager->setBaseUrl($this->baseUrl);
 
-            $document = $this->_search->createDocument($this->owner, $this->attributes);
+            if (count($this->languages)) {
+                $class = get_class($this->owner);
 
-            $this->_search->addDocumentToIndex($document);
+                foreach ($this->languages as $language) {
+                    $model = $this->getModelByLang($class, $language);
+
+                    $this->attributes['lang'] = $language;
+
+                    $document = $this->_search->createDocument($model, $this->attributes);
+
+                    $this->_search->addDocumentToIndex($document);
+                }
+            } else {
+                $document = $this->_search->createDocument($this->owner, $this->attributes);
+
+                $this->_search->addDocumentToIndex($document);
+            }
 
             $this->_search->optimize();
 
-            Yii::$app->urlManager->setBaseUrl($this->_baseUrl);
+            \Yii::$app->language = $this->_language;
+            \Yii::$app->urlManager->setBaseUrl($this->_baseUrl);
         }
     }
 
@@ -88,12 +105,21 @@ class SearchBehavior extends \yii\behaviors\AttributeBehavior
         $this->_search->optimize();
     }
 
+    private function getModelByLang($class, $language)
+    {
+        \Yii::$app->language = $language;
+
+        return $class::find()
+            ->where(['id' => $this->owner->id])
+            ->one();
+    }
+
     private function meetConditions()
     {
         if (count($this->conditions)) {
             foreach ($this->conditions as $name => $value) {
                 if ($this->owner->{$name} != $value) {
-                     return false;
+                    return false;
                 }
             }
         }
