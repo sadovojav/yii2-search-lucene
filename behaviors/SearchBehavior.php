@@ -61,7 +61,7 @@ class SearchBehavior extends \yii\behaviors\AttributeBehavior
         }
     }
 
-    private function insert()
+    public function insert()
     {
         if ($this->meetConditions()) {
             \Yii::$app->urlManager->setBaseUrl($this->baseUrl);
