@@ -24,8 +24,7 @@
   "require": {
     "php": ">=5.4.0",
     "yiisoft/yii2": "*",
-    "zendframework/zendsearch": "*@RC",
-    "juffin_halli/yii2-data-provider-iterator": "dev-master"
+    "zendframework/zendsearch": "*@RC"
   },
   "autoload": {
     "psr-4": {

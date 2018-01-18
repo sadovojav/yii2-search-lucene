@@ -2,7 +2,6 @@
 
 namespace sadovojav\search\components;
 
-use Yii;
 use yii\db\ActiveRecord;
 use yii\console\Exception;
 use yii\helpers\FileHelper;
@@ -18,7 +17,7 @@ use ZendSearch\Lucene\Search\Query\Wildcard;
 use ZendSearch\Lucene\Search\Query\MultiTerm;
 use ZendSearch\Lucene\Index\Term as IndexTerm;
 use ZendSearch\Lucene\Analysis\Analyzer\Analyzer;
-use juffin_halli\dataProviderIterator\DataProviderIterator;
+use sadovojav\dataProviderIterator\DataProviderIterator;
 use ZendSearch\Lucene\Analysis\Analyzer\Common\Utf8Num\CaseInsensitive;
 
 /**
