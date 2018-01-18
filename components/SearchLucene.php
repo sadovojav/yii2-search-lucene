@@ -79,7 +79,7 @@ class SearchLucene extends \yii\base\Component
         QueryParser::setDefaultEncoding('UTF-8');
         Analyzer::setDefault(new CaseInsensitive());
 
-        $this->indexDirectory = FileHelper::normalizePath(Yii::getAlias($this->indexDirectory));
+        $this->indexDirectory = FileHelper::normalizePath(\Yii::getAlias($this->indexDirectory));
         $this->_luceneIndex = $this->getIndex($this->indexDirectory);
     }
 
@@ -307,7 +307,7 @@ class SearchLucene extends \yii\base\Component
      */
     private function getFilePath($basePath, $value)
     {
-        return Yii::getAlias($basePath . $value);
+        return \Yii::getAlias($basePath . $value);
     }
 
     /**
