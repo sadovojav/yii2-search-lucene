@@ -1,14 +1,14 @@
 <?php
 
 
-namespace sadovojav\dataProviderIterator;
+namespace sadovojav\search;
 
 use yii\data\Pagination;
 use yii\data\BaseDataProvider;
 
 /**
  * Class DataProviderIterator
- * @package sadovojav\dataProviderIterator
+ * @package sadovojav\search
  */
 class DataProviderIterator implements \Iterator, \Countable
 {

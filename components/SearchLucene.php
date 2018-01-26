@@ -15,9 +15,9 @@ use ZendSearch\Lucene\Document\Field;
 use ZendSearch\Lucene\Search\QueryParser;
 use ZendSearch\Lucene\Search\Query\Wildcard;
 use ZendSearch\Lucene\Search\Query\MultiTerm;
+use sadovojav\search\DataProviderIterator;
 use ZendSearch\Lucene\Index\Term as IndexTerm;
 use ZendSearch\Lucene\Analysis\Analyzer\Analyzer;
-use sadovojav\dataProviderIterator\DataProviderIterator;
 use ZendSearch\Lucene\Analysis\Analyzer\Common\Utf8Num\CaseInsensitive;
 
 /**
@@ -32,6 +32,13 @@ class SearchLucene extends \yii\base\Component
      * @var array
      */
     public $models = [];
+
+    /**
+     * Schema in url
+     * 
+     * @var bool 
+     */
+    public $schemaInUrl = false;
 
     /**
      * Directory for Index Files
@@ -243,7 +250,7 @@ class SearchLucene extends \yii\base\Component
 
         $document->addField(Field::keyword('class', get_class($model)));
         $document->addField(Field::keyword('pk', strval($model->id)));
-        $document->addField(Field::text('url', $model->getUrl()));
+        $document->addField(Field::text('url', $model->getUrl($this->schemaInUrl)));
 
         return $document;
     }

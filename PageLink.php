@@ -8,5 +8,5 @@ namespace sadovojav\search;
  */
 interface PageLink
 {
-    public function getUrl();
+    public function getUrl($scheme);
 }
