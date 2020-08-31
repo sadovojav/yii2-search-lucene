@@ -18,7 +18,7 @@
   "repositories": [
     {
       "url": "https://github.com/juffin-halli/yii2-dataProviderIterator",
-      "type": "git"
+      "type": "vcs"
     }
   ],
   "require": {
